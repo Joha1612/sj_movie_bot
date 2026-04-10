@@ -10,99 +10,46 @@ session = cloudscraper.create_scraper()
 VIDEO_FORMATS = (".mkv", ".mp4", ".avi", ".mov", ".webm")
 
 
-# def search_movie(query):
+def search_movie(query):
 
-#     search_url = f"{BASE_URL}/search?keyword={query}"
+    search_url = f"{BASE_URL}/search?keyword={query}"
 
-#     r = session.get(search_url)
+    r = session.get(search_url)
 
-#     soup = BeautifulSoup(r.text, "lxml")
+    soup = BeautifulSoup(r.text, "lxml")
 
-#     results = []
+    results = []
 
-#     cards = soup.select("div.video-latest-list, div.video-wrapper")
+    cards = soup.select("div.video-latest-list, div.video-wrapper")
 
-#     for card in cards:
+    for card in cards:
 
-#         a = card.select_one("a[href*='/watch/']")
-#         img = card.select_one("img")
-#         title_tag = card.select_one("p.hptag")
+        a = card.select_one("a[href*='/watch/']")
+        img = card.select_one("img")
+        title_tag = card.select_one("p.hptag")
 
-#         if not a:
-#             continue
-
-#         title = None
-
-#         if title_tag:
-#             title = title_tag.get("title") or title_tag.text.strip()
-
-#         if not title:
-#             title = "Unknown Title"
-
-#         link = urljoin(BASE_URL, a["href"])
-
-#         poster = img["src"] if img else None
-
-#         results.append({
-#             "title": title,
-#             "url": link,
-#             "poster": poster
-#         })
-
-#     return results[:20]
-def get_latest_movies(max_pages=5):
-
-    movies = []
-
-    for page in range(1, max_pages + 1):
-
-        if page == 1:
-            url = f"{BASE_URL}/videos/latest"
-        else:
-            url = f"{BASE_URL}/videos/latest?page={page}"
-
-        try:
-            r = session.get(url, timeout=20)
-
-            if r.status_code != 200:
-                continue
-
-            soup = BeautifulSoup(r.text, "lxml")
-
-            cards = soup.select("div.video-thumb")
-
-            if not cards:
-                break
-
-            for card in cards:
-
-                a = card.select_one("a[href*='/watch/']")
-                img = card.select_one("img")
-
-                title_tag = card.find_next("p", class_="hptag")
-
-                if not a:
-                    continue
-
-                title = (
-                    title_tag.get_text(strip=True)
-                    if title_tag else "Unknown Title"
-                )
-
-                link = urljoin(BASE_URL, a["href"])
-
-                poster = img["src"] if img else None
-
-                movies.append({
-                    "title": title,
-                    "url": link,
-                    "poster": poster
-                })
-
-        except:
+        if not a:
             continue
 
-    return movies
+        title = None
+
+        if title_tag:
+            title = title_tag.get("title") or title_tag.text.strip()
+
+        if not title:
+            title = "Unknown Title"
+
+        link = urljoin(BASE_URL, a["href"])
+
+        poster = img["src"] if img else None
+
+        results.append({
+            "title": title,
+            "url": link,
+            "poster": poster
+        })
+
+    return results[:20]
 
 def get_trending_movies():
 
@@ -139,39 +86,6 @@ def get_trending_movies():
 
     return results[:20]
 
-
-# def get_category_movies(category_url):
-
-#     r = session.get(category_url)
-
-#     soup = BeautifulSoup(r.text, "lxml")
-
-#     results = []
-
-#     cards = soup.select("div.video-latest-list, div.video-wrapper")
-
-#     for card in cards:
-
-#         a = card.select_one("a[href*='/watch/']")
-#         img = card.select_one("img")
-#         title_tag = card.select_one("p.hptag")
-
-#         if not a:
-#             continue
-
-#         title = title_tag.get("title") if title_tag else "Unknown Title"
-
-#         link = urljoin(BASE_URL, a["href"])
-
-#         poster = img["src"] if img else None
-
-#         results.append({
-#             "title": title,
-#             "url": link,
-#             "poster": poster
-#         })
-
-#     return results[:20]
 def get_category_movies(category_url, max_pages=5):
 
     movies = []
@@ -226,56 +140,6 @@ def get_category_movies(category_url, max_pages=5):
 
     return movies
 
-# def get_latest_movies():
-
-#     url = "https://fibwatch.art/videos/latest"
-
-#     r = session.get(url, timeout=20)
-
-#     if r.status_code != 200:
-#         return []
-
-#     soup = BeautifulSoup(r.text, "lxml")
-
-#     movies = []
-
-#     items = soup.select("div.video-latest-list")
-
-#     for item in items:
-
-#         try:
-
-#             # movie page link
-#             link_tag = item.select_one("div.video-thumb a")
-
-#             # title
-#             title_tag = item.select_one("div.channel_details p.hptag")
-
-#             # poster
-#             img_tag = item.select_one("div.video-thumb img")
-
-#             if not link_tag:
-#                 continue
-
-#             link = link_tag["href"]
-
-#             if not link.startswith("http"):
-#                 link = "https://fibwatch.art" + link
-
-#             title = title_tag.get_text(strip=True) if title_tag else "Unknown Title"
-
-#             poster = img_tag["src"] if img_tag else None
-
-#             movies.append({
-#                 "title": title,
-#                 "url": link,
-#                 "poster": poster
-#             })
-
-#         except:
-#             continue
-
-#     return movies
 def get_latest_movies(max_pages=5):
 
     movies = []
