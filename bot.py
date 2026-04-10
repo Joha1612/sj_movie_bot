@@ -188,6 +188,21 @@ async def show_movies(update, context, movies, page=0):
 
 # ================= PAGINATION =================
 
+# async def pagination_handler(update, context):
+
+#     query = update.callback_query
+#     await query.answer()
+
+#     page = context.user_data.get("page", 0)
+
+#     if query.data == "next_page":
+#         page += 1
+#     else:
+#         page -= 1
+
+#     movies = context.user_data.get("all_movies", [])
+
+#     await show_movies(query.message, context, movies, page)
 async def pagination_handler(update, context):
 
     query = update.callback_query
@@ -202,7 +217,7 @@ async def pagination_handler(update, context):
 
     movies = context.user_data.get("all_movies", [])
 
-    await show_movies(query.message, context, movies, page)
+    await show_movies(query, context, movies, page)
 
 
 # ================= GROUP SELECT =================
