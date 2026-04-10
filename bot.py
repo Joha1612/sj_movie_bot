@@ -24,7 +24,6 @@ from live_scraper import (
 import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-BOT_TOKEN = "8652158338:AAG6T0EuV3yxgCWLeMPcYMqhGGyfUKejHXs"
 ADMIN_ID = 1492045349  # Replace with your Telegram numeric ID
 
 MOVIES_PER_PAGE = 8
