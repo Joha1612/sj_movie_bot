@@ -4,6 +4,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
 )
+
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -40,6 +41,29 @@ CATEGORY_URLS = {
     "🎭 Bangla Dubbed": "https://fibwatch.art/videos/category/852",
     "🎤 Natok": "https://fibwatch.art/videos/category/855",
 }
+
+
+# ================= MESSAGE TRACKER =================
+
+async def track_message(context, message):
+
+    if "bot_messages" not in context.user_data:
+        context.user_data["bot_messages"] = []
+
+    context.user_data["bot_messages"].append(message.message_id)
+
+
+async def clear_ui(update, context):
+
+    chat_id = update.effective_chat.id
+
+    for msg_id in context.user_data.get("bot_messages", []):
+        try:
+            await context.bot.delete_message(chat_id, msg_id)
+        except:
+            pass
+
+    context.user_data["bot_messages"] = []
 
 
 # ================= MENUS =================
@@ -79,10 +103,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     USERS.add(update.effective_user.id)
 
-    await update.message.reply_text(
+    msg = await update.message.reply_text(
         "👋 Welcome to Movie Finder Bot",
         reply_markup=main_menu(),
     )
+
+    await track_message(context, msg)
+
+
+# ================= CLEAR HISTORY =================
+
+async def clear_history(update, context):
+
+    await clear_ui(update, context)
+
+    try:
+        await update.message.delete()
+    except:
+        pass
+
+    msg = await context.bot.send_message(
+        update.effective_chat.id,
+        "🧹 History cleared!",
+        reply_markup=main_menu()
+    )
+
+    context.user_data["bot_messages"] = [msg.message_id]
 
 
 # ================= SHOW MOVIES =================
@@ -90,7 +136,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_movies(update, context, movies, page=0):
 
     if not movies:
-        await update.message.reply_text("No movies found.")
+
+        msg = await update.message.reply_text("No movies found.")
+        await track_message(context, msg)
         return
 
     grouped = list(group_movies(movies).keys())
@@ -107,6 +155,7 @@ async def show_movies(update, context, movies, page=0):
     keyboard = []
 
     for i, title in enumerate(page_items):
+
         keyboard.append([
             InlineKeyboardButton(
                 title,
@@ -129,10 +178,12 @@ async def show_movies(update, context, movies, page=0):
     if nav_buttons:
         keyboard.append(nav_buttons)
 
-    await update.message.reply_text(
+    msg = await update.message.reply_text(
         f"Select a movie (Page {page+1})",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
+
+    await track_message(context, msg)
 
 
 # ================= PAGINATION =================
@@ -178,6 +229,7 @@ async def group_selected(update, context):
     keyboard = []
 
     for i, movie in enumerate(variants):
+
         keyboard.append([
             InlineKeyboardButton(
                 movie["title"],
@@ -185,10 +237,12 @@ async def group_selected(update, context):
             )
         ])
 
-    await query.message.reply_text(
+    msg = await query.message.reply_text(
         "Select version:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+    await track_message(context, msg)
 
 
 # ================= MOVIE SELECT =================
@@ -209,6 +263,7 @@ async def movie_selected(update, context):
     keyboard = []
 
     for i, link in enumerate(links):
+
         keyboard.append([
             InlineKeyboardButton(
                 link["quality"],
@@ -219,16 +274,21 @@ async def movie_selected(update, context):
     poster = movie.get("poster")
 
     if poster:
-        await query.message.reply_photo(
+
+        sent = await query.message.reply_photo(
             photo=poster,
             caption=f"{movie['title']}\nSelect quality:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+
     else:
-        await query.message.reply_text(
+
+        sent = await query.message.reply_text(
             "Select quality:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+
+    await track_message(context, sent)
 
 
 # ================= CDN SELECT =================
@@ -239,14 +299,17 @@ async def cdn_selected(update, context):
     await query.answer("Link ready!")
 
     index = int(query.data.split("_")[1])
+
     link = context.user_data["links"][index]["url"]
 
     keyboard = [[InlineKeyboardButton("📋 Copy Link", url=link)]]
 
-    await query.message.reply_text(
+    sent = await query.message.reply_text(
         "Tap Copy Link button",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
+    await track_message(context, sent)
 
 
 # ================= MENU HANDLER =================
@@ -256,45 +319,57 @@ async def menu_handler(update, context):
     text = update.message.text
 
     if text == "🎬 Search Movie":
-        await update.message.reply_text("Send movie name:")
+
+        msg = await update.message.reply_text("Send movie name:")
+        await track_message(context, msg)
 
     elif text == "🆕 Latest Videos":
+
         movies = get_latest_movies()
         await show_movies(update, context, movies)
 
     elif text == "🔥 Trending":
+
         movies = get_trending_movies()
         await show_movies(update, context, movies)
 
     elif text == "📂 Categories":
-        await update.message.reply_text(
+
+        msg = await update.message.reply_text(
             "Select category:",
             reply_markup=categories_menu()
         )
 
+        await track_message(context, msg)
+
     elif text == "🔙 Back":
-        await update.message.reply_text(
+
+        msg = await update.message.reply_text(
             "Back to main menu",
             reply_markup=main_menu()
         )
 
+        await track_message(context, msg)
+
     elif text == "🧹 Clear History":
-        context.user_data.clear()
-        await update.message.reply_text(
-            "History cleared",
-            reply_markup=main_menu()
-        )
+
+        await clear_history(update, context)
 
     elif text == "ℹ️ Help":
-        await update.message.reply_text(
+
+        msg = await update.message.reply_text(
             "Send movie name to search 🎬"
         )
 
+        await track_message(context, msg)
+
     elif text in CATEGORY_URLS:
+
         movies = get_category_movies(CATEGORY_URLS[text])
         await show_movies(update, context, movies)
 
     else:
+
         movies = search_movie(text)
         await show_movies(update, context, movies)
 
