@@ -4,7 +4,6 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
 )
-
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -22,12 +21,11 @@ from live_scraper import (
     get_latest_movies,
     group_movies,
 )
-
 import os
 
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 123456789
+BOT_TOKEN = "8652158338:AAG6T0EuV3yxgCWLeMPcYMqhGGyfUKejHXs"
+ADMIN_ID = 1492045349  # Replace with your Telegram numeric ID
 
 MOVIES_PER_PAGE = 8
 USERS = set()
@@ -46,15 +44,12 @@ CATEGORY_URLS = {
 # ================= MESSAGE TRACKER =================
 
 async def track_message(context, message):
-
-    if "bot_messages" not in context.user_data:
-        context.user_data["bot_messages"] = []
-
-    context.user_data["bot_messages"].append(message.message_id)
+    context.user_data.setdefault("bot_messages", []).append(
+        message.message_id
+    )
 
 
 async def clear_ui(update, context):
-
     chat_id = update.effective_chat.id
 
     for msg_id in context.user_data.get("bot_messages", []):
@@ -64,6 +59,18 @@ async def clear_ui(update, context):
             pass
 
     context.user_data["bot_messages"] = []
+
+
+# ================= CLEAR HISTORY =================
+
+async def clear_history(update, context):
+    await clear_ui(update, context)
+    context.user_data.clear()
+
+    await update.message.reply_text(
+        "🧹 Chat cleaned successfully!",
+        reply_markup=main_menu()
+    )
 
 
 # ================= MENUS =================
@@ -111,32 +118,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await track_message(context, msg)
 
 
-# ================= CLEAR HISTORY =================
-
-async def clear_history(update, context):
-
-    await clear_ui(update, context)
-
-    try:
-        await update.message.delete()
-    except:
-        pass
-
-    msg = await context.bot.send_message(
-        update.effective_chat.id,
-        "🧹 History cleared!",
-        reply_markup=main_menu()
-    )
-
-    context.user_data["bot_messages"] = [msg.message_id]
-
-
-# ================= SHOW MOVIES =================
+# ================= SHOW MOVIES WITH PAGINATION =================
 
 async def show_movies(update, context, movies, page=0):
 
     if not movies:
-
         msg = await update.message.reply_text("No movies found.")
         await track_message(context, msg)
         return
@@ -155,7 +141,6 @@ async def show_movies(update, context, movies, page=0):
     keyboard = []
 
     for i, title in enumerate(page_items):
-
         keyboard.append([
             InlineKeyboardButton(
                 title,
@@ -178,9 +163,11 @@ async def show_movies(update, context, movies, page=0):
     if nav_buttons:
         keyboard.append(nav_buttons)
 
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     msg = await update.message.reply_text(
         f"Select a movie (Page {page+1})",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        reply_markup=reply_markup,
     )
 
     await track_message(context, msg)
@@ -188,21 +175,6 @@ async def show_movies(update, context, movies, page=0):
 
 # ================= PAGINATION =================
 
-# async def pagination_handler(update, context):
-
-#     query = update.callback_query
-#     await query.answer()
-
-#     page = context.user_data.get("page", 0)
-
-#     if query.data == "next_page":
-#         page += 1
-#     else:
-#         page -= 1
-
-#     movies = context.user_data.get("all_movies", [])
-
-#     await show_movies(query.message, context, movies, page)
 async def pagination_handler(update, context):
 
     query = update.callback_query
@@ -244,7 +216,6 @@ async def group_selected(update, context):
     keyboard = []
 
     for i, movie in enumerate(variants):
-
         keyboard.append([
             InlineKeyboardButton(
                 movie["title"],
@@ -278,7 +249,6 @@ async def movie_selected(update, context):
     keyboard = []
 
     for i, link in enumerate(links):
-
         keyboard.append([
             InlineKeyboardButton(
                 link["quality"],
@@ -289,15 +259,12 @@ async def movie_selected(update, context):
     poster = movie.get("poster")
 
     if poster:
-
         sent = await query.message.reply_photo(
             photo=poster,
             caption=f"{movie['title']}\nSelect quality:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
-
     else:
-
         sent = await query.message.reply_text(
             "Select quality:",
             reply_markup=InlineKeyboardMarkup(keyboard)
@@ -314,7 +281,6 @@ async def cdn_selected(update, context):
     await query.answer("Link ready!")
 
     index = int(query.data.split("_")[1])
-
     link = context.user_data["links"][index]["url"]
 
     keyboard = [[InlineKeyboardButton("📋 Copy Link", url=link)]]
@@ -327,8 +293,41 @@ async def cdn_selected(update, context):
     await track_message(context, sent)
 
 
-# ================= MENU HANDLER =================
+# ================= ADMIN PANEL =================
 
+async def stats(update, context):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    await update.message.reply_text(
+        f"📊 Total users: {len(USERS)}"
+    )
+
+
+async def users(update, context):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    await update.message.reply_text(str(USERS))
+
+
+async def broadcast(update, context):
+
+    if update.effective_user.id != ADMIN_ID:
+        return
+
+    text = " ".join(context.args)
+
+    for user in USERS:
+        try:
+            await context.bot.send_message(user, text)
+        except:
+            pass
+
+
+# ================= MENU HANDLER =================
 async def menu_handler(update, context):
 
     text = update.message.text
@@ -389,6 +388,7 @@ async def menu_handler(update, context):
         await show_movies(update, context, movies)
 
 
+
 # ================= MAIN =================
 
 def main():
@@ -396,6 +396,10 @@ def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
+
+    app.add_handler(CommandHandler("stats", stats))
+    app.add_handler(CommandHandler("users", users))
+    app.add_handler(CommandHandler("broadcast", broadcast))
 
     app.add_handler(
         CallbackQueryHandler(group_selected, pattern="^group_")
@@ -408,6 +412,7 @@ def main():
     app.add_handler(
         CallbackQueryHandler(cdn_selected, pattern="^cdn_")
     )
+
 
     app.add_handler(
         CallbackQueryHandler(
