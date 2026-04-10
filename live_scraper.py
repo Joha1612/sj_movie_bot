@@ -55,60 +55,68 @@ def extract_movies(url):
 
 
 # ================= SEARCH =================
-
 def search_movie(query):
 
-    urls = [
-        f"https://fibwatch.art/search?keyword={query}",
-        f"https://fibwatch.art/?s={query.replace(' ', '+')}"
-    ]
+    search_url = f"https://fibwatch.art/search?keyword={query}"
+
+    try:
+        r = session.get(search_url, timeout=20)
+    except:
+        return []
+
+    if r.status_code != 200:
+        return []
+
+    soup = BeautifulSoup(r.text, "lxml")
 
     results = []
 
-    for url in urls:
+    selectors = [
+        "div.video-thumb",
+        "div.video-latest-list",
+        "div.video-wrapper"
+    ]
+
+    cards = []
+
+    for sel in selectors:
+        cards.extend(soup.select(sel))
+
+    for card in cards:
 
         try:
-            r = session.get(url, timeout=20)
+            a = card.select_one("a[href*='/watch/']")
+            img = card.select_one("img")
 
-            if r.status_code != 200:
+            title_tag = (
+                card.select_one("p.hptag")
+                or card.select_one("h4")
+                or card.select_one("span")
+            )
+
+            if not a:
                 continue
 
-            soup = BeautifulSoup(r.text, "lxml")
+            title = (
+                title_tag.get_text(strip=True)
+                if title_tag else "Unknown Title"
+            )
 
-            cards = soup.select("div.video-thumb")
+            link = urljoin(BASE_URL, a["href"])
 
-            for card in cards:
+            poster = img["src"] if img else None
 
-                link_tag = card.select_one("a[href*='/watch/']")
-                img_tag = card.select_one("img")
-
-                title_tag = card.find_next(
-                    "p",
-                    class_="hptag"
-                )
-
-                if not link_tag:
-                    continue
-
-                title = (
-                    title_tag.get_text(strip=True)
-                    if title_tag else "Unknown Title"
-                )
-
-                link = urljoin(BASE_URL, link_tag["href"])
-
-                poster = img_tag["src"] if img_tag else None
-
-                results.append({
-                    "title": title,
-                    "url": link,
-                    "poster": poster
-                })
+            results.append({
+                "title": title,
+                "url": link,
+                "poster": poster
+            })
 
         except:
             continue
 
     return results[:20]
+
 
 # ================= TRENDING =================
 
