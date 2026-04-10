@@ -29,7 +29,7 @@ import os
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 123456789
 
-MOVIES_PER_PAGE = 8
+MOVIES_PER_PAGE = 16
 USERS = set()
 
 
