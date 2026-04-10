@@ -24,8 +24,9 @@ from live_scraper import (
 
 import os
 
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = 1492045349  # Replace with your Telegram numeric ID
+ADMIN_ID = 123456789
 
 MOVIES_PER_PAGE = 8
 USERS = set()
@@ -39,38 +40,6 @@ CATEGORY_URLS = {
     "🎭 Bangla Dubbed": "https://fibwatch.art/videos/category/852",
     "🎤 Natok": "https://fibwatch.art/videos/category/855",
 }
-
-
-# ================= MESSAGE TRACKER =================
-
-async def track_message(context, message):
-    context.user_data.setdefault("bot_messages", []).append(
-        message.message_id
-    )
-
-
-async def clear_ui(update, context):
-    chat_id = update.effective_chat.id
-
-    for msg_id in context.user_data.get("bot_messages", []):
-        try:
-            await context.bot.delete_message(chat_id, msg_id)
-        except:
-            pass
-
-    context.user_data["bot_messages"] = []
-
-
-# ================= CLEAR HISTORY =================
-
-async def clear_history(update, context):
-    await clear_ui(update, context)
-    context.user_data.clear()
-
-    await update.message.reply_text(
-        "🧹 Chat cleaned successfully!",
-        reply_markup=main_menu()
-    )
 
 
 # ================= MENUS =================
@@ -110,21 +79,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     USERS.add(update.effective_user.id)
 
-    msg = await update.message.reply_text(
+    await update.message.reply_text(
         "👋 Welcome to Movie Finder Bot",
         reply_markup=main_menu(),
     )
 
-    await track_message(context, msg)
 
-
-# ================= SHOW MOVIES WITH PAGINATION =================
+# ================= SHOW MOVIES =================
 
 async def show_movies(update, context, movies, page=0):
 
     if not movies:
-        msg = await update.message.reply_text("No movies found.")
-        await track_message(context, msg)
+        await update.message.reply_text("No movies found.")
         return
 
     grouped = list(group_movies(movies).keys())
@@ -163,14 +129,10 @@ async def show_movies(update, context, movies, page=0):
     if nav_buttons:
         keyboard.append(nav_buttons)
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    msg = await update.message.reply_text(
+    await update.message.reply_text(
         f"Select a movie (Page {page+1})",
-        reply_markup=reply_markup,
+        reply_markup=InlineKeyboardMarkup(keyboard),
     )
-
-    await track_message(context, msg)
 
 
 # ================= PAGINATION =================
@@ -189,7 +151,7 @@ async def pagination_handler(update, context):
 
     movies = context.user_data.get("all_movies", [])
 
-    await show_movies(query, context, movies, page)
+    await show_movies(query.message, context, movies, page)
 
 
 # ================= GROUP SELECT =================
@@ -223,12 +185,10 @@ async def group_selected(update, context):
             )
         ])
 
-    msg = await query.message.reply_text(
+    await query.message.reply_text(
         "Select version:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
-    await track_message(context, msg)
 
 
 # ================= MOVIE SELECT =================
@@ -259,18 +219,16 @@ async def movie_selected(update, context):
     poster = movie.get("poster")
 
     if poster:
-        sent = await query.message.reply_photo(
+        await query.message.reply_photo(
             photo=poster,
             caption=f"{movie['title']}\nSelect quality:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     else:
-        sent = await query.message.reply_text(
+        await query.message.reply_text(
             "Select quality:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
-
-    await track_message(context, sent)
 
 
 # ================= CDN SELECT =================
@@ -285,93 +243,10 @@ async def cdn_selected(update, context):
 
     keyboard = [[InlineKeyboardButton("📋 Copy Link", url=link)]]
 
-    sent = await query.message.reply_text(
+    await query.message.reply_text(
         "Tap Copy Link button",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
-    await track_message(context, sent)
-
-
-# ================= INLINE SEARCH SUGGESTION =================
-
-async def suggest_movies(update, context):
-
-    query = update.message.text
-
-    movies = search_movie(query)
-
-    if not movies:
-        return
-
-    suggestions = movies[:5]
-
-    context.user_data["suggestions"] = suggestions
-
-    keyboard = []
-
-    for i, movie in enumerate(suggestions):
-        keyboard.append([
-            InlineKeyboardButton(
-                movie["title"],
-                callback_data=f"suggest_{i}"
-            )
-        ])
-
-    msg = await update.message.reply_text(
-        "Did you mean:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-    await track_message(context, msg)
-
-
-async def suggestion_selected(update, context):
-
-    query = update.callback_query
-    await query.answer()
-
-    index = int(query.data.split("_")[1])
-
-    movie = context.user_data["suggestions"][index]
-
-    results = search_movie(movie["title"])
-
-    await show_movies(query, context, results)
-
-
-# ================= ADMIN PANEL =================
-
-async def stats(update, context):
-
-    if update.effective_user.id != ADMIN_ID:
-        return
-
-    await update.message.reply_text(
-        f"📊 Total users: {len(USERS)}"
-    )
-
-
-async def users(update, context):
-
-    if update.effective_user.id != ADMIN_ID:
-        return
-
-    await update.message.reply_text(str(USERS))
-
-
-async def broadcast(update, context):
-
-    if update.effective_user.id != ADMIN_ID:
-        return
-
-    text = " ".join(context.args)
-
-    for user in USERS:
-        try:
-            await context.bot.send_message(user, text)
-        except:
-            pass
 
 
 # ================= MENU HANDLER =================
@@ -397,8 +272,18 @@ async def menu_handler(update, context):
             reply_markup=categories_menu()
         )
 
+    elif text == "🔙 Back":
+        await update.message.reply_text(
+            "Back to main menu",
+            reply_markup=main_menu()
+        )
+
     elif text == "🧹 Clear History":
-        await clear_history(update, context)
+        context.user_data.clear()
+        await update.message.reply_text(
+            "History cleared",
+            reply_markup=main_menu()
+        )
 
     elif text == "ℹ️ Help":
         await update.message.reply_text(
@@ -410,7 +295,8 @@ async def menu_handler(update, context):
         await show_movies(update, context, movies)
 
     else:
-        await suggest_movies(update, context)
+        movies = search_movie(text)
+        await show_movies(update, context, movies)
 
 
 # ================= MAIN =================
@@ -420,10 +306,6 @@ def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-
-    app.add_handler(CommandHandler("stats", stats))
-    app.add_handler(CommandHandler("users", users))
-    app.add_handler(CommandHandler("broadcast", broadcast))
 
     app.add_handler(
         CallbackQueryHandler(group_selected, pattern="^group_")
@@ -435,13 +317,6 @@ def main():
 
     app.add_handler(
         CallbackQueryHandler(cdn_selected, pattern="^cdn_")
-    )
-
-    app.add_handler(
-        CallbackQueryHandler(
-            suggestion_selected,
-            pattern="^suggest_"
-        )
     )
 
     app.add_handler(
