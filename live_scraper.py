@@ -57,56 +57,156 @@ def extract_movies(url):
 # ================= SEARCH =================
 def search_movie(query):
 
-    search_url = f"https://fibwatch.art/search?keyword={query}"
+    search_url = f"{BASE_URL}/search?keyword={query}"
 
-    try:
-        r = session.get(search_url, timeout=20)
-    except:
-        return []
+    r = session.get(search_url)
+
+    soup = BeautifulSoup(r.text, "lxml")
+
+    results = []
+
+    cards = soup.select("div.video-latest-list, div.video-wrapper")
+
+    for card in cards:
+
+        a = card.select_one("a[href*='/watch/']")
+        img = card.select_one("img")
+        title_tag = card.select_one("p.hptag")
+
+        if not a:
+            continue
+
+        title = None
+
+        if title_tag:
+            title = title_tag.get("title") or title_tag.text.strip()
+
+        if not title:
+            title = "Unknown Title"
+
+        link = urljoin(BASE_URL, a["href"])
+
+        poster = img["src"] if img else None
+
+        results.append({
+            "title": title,
+            "url": link,
+            "poster": poster
+        })
+
+    return results[:20]
+
+
+def get_trending_movies():
+
+    url = f"{BASE_URL}/videos/trending"
+
+    r = session.get(url)
+
+    soup = BeautifulSoup(r.text, "lxml")
+
+    results = []
+
+    cards = soup.select("div.video-latest-list, div.video-wrapper")
+
+    for card in cards:
+
+        a = card.select_one("a[href*='/watch/']")
+        img = card.select_one("img")
+        title_tag = card.select_one("p.hptag")
+
+        if not a:
+            continue
+
+        title = title_tag.get("title") if title_tag else "Unknown Title"
+
+        link = urljoin(BASE_URL, a["href"])
+
+        poster = img["src"] if img else None
+
+        results.append({
+            "title": title,
+            "url": link,
+            "poster": poster
+        })
+
+    return results[:20]
+
+
+def get_category_movies(category_url):
+
+    r = session.get(category_url)
+
+    soup = BeautifulSoup(r.text, "lxml")
+
+    results = []
+
+    cards = soup.select("div.video-latest-list, div.video-wrapper")
+
+    for card in cards:
+
+        a = card.select_one("a[href*='/watch/']")
+        img = card.select_one("img")
+        title_tag = card.select_one("p.hptag")
+
+        if not a:
+            continue
+
+        title = title_tag.get("title") if title_tag else "Unknown Title"
+
+        link = urljoin(BASE_URL, a["href"])
+
+        poster = img["src"] if img else None
+
+        results.append({
+            "title": title,
+            "url": link,
+            "poster": poster
+        })
+
+    return results[:20]
+
+def get_latest_movies():
+
+    url = "https://fibwatch.art/videos/latest"
+
+    r = session.get(url, timeout=20)
 
     if r.status_code != 200:
         return []
 
     soup = BeautifulSoup(r.text, "lxml")
 
-    results = []
+    movies = []
 
-    selectors = [
-        "div.video-thumb",
-        "div.video-latest-list",
-        "div.video-wrapper"
-    ]
+    items = soup.select("div.video-latest-list")
 
-    cards = []
-
-    for sel in selectors:
-        cards.extend(soup.select(sel))
-
-    for card in cards:
+    for item in items:
 
         try:
-            a = card.select_one("a[href*='/watch/']")
-            img = card.select_one("img")
 
-            title_tag = (
-                card.select_one("p.hptag")
-                or card.select_one("h4")
-                or card.select_one("span")
-            )
+            # movie page link
+            link_tag = item.select_one("div.video-thumb a")
 
-            if not a:
+            # title
+            title_tag = item.select_one("div.channel_details p.hptag")
+
+            # poster
+            img_tag = item.select_one("div.video-thumb img")
+
+            if not link_tag:
                 continue
 
-            title = (
-                title_tag.get_text(strip=True)
-                if title_tag else "Unknown Title"
-            )
+            link = link_tag["href"]
 
-            link = urljoin(BASE_URL, a["href"])
+            if not link.startswith("http"):
+                link = "https://fibwatch.art" + link
 
-            poster = img["src"] if img else None
+            title = title_tag.get_text(strip=True) if title_tag else "Unknown Title"
 
-            results.append({
+            poster = img_tag["src"] if img_tag else None
+
+            movies.append({
                 "title": title,
                 "url": link,
                 "poster": poster
@@ -115,29 +215,7 @@ def search_movie(query):
         except:
             continue
 
-    return results[:20]
-
-
-# ================= TRENDING =================
-
-def get_trending_movies():
-
-    return extract_movies(f"{BASE_URL}/videos/trending")
-
-
-# ================= CATEGORY =================
-
-def get_category_movies(category_url):
-
-    return extract_movies(category_url)
-
-
-# ================= LATEST =================
-
-def get_latest_movies():
-
-    return extract_movies(f"{BASE_URL}/videos/latest")
-
+    return movies
 
 # ================= TITLE CLEAN =================
 
