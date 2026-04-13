@@ -36,8 +36,7 @@ CATEGORY_URLS = {
     "🌐 Hindi Dubbed": "https://fibwatch.art/videos/category/5",
     "🎭 Bangla Dubbed": "https://fibwatch.art/videos/category/852",
     "🎤 Natok": "https://fibwatch.art/videos/category/855",
-    "Cartoon":"https://fibwatch.art/videos/category/7",
-    "English":"https://fibwatch.art/videos/category/8",
+    "Cartoon": "https://fibwatch.art/videos/category/7",
 }
 
 
