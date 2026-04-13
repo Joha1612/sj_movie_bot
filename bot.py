@@ -97,6 +97,7 @@ def categories_menu():
         ["🎭 Bangla Dubbed"],
         ["📺 Web Series"],
         ["🎤 Natok"],
+        ["Cartoon"],
         ["🔙 Back"],
     ]
 
