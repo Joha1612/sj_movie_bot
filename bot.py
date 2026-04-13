@@ -37,6 +37,7 @@ CATEGORY_URLS = {
     "🎭 Bangla Dubbed": "https://fibwatch.art/videos/category/852",
     "🎤 Natok": "https://fibwatch.art/videos/category/855",
     "Cartoon":"https://fibwatch.art/videos/category/7",
+    "English":"https://fibwatch.art/videos/category/8",
 }
 
 
@@ -95,9 +96,10 @@ def categories_menu():
         ["🎬 Hindi"],
         ["🌐 Hindi Dubbed"],
         ["🎭 Bangla Dubbed"],
+        ["📺 English"],
         ["📺 Web Series"],
         ["🎤 Natok"],
-        ["Cartoon"],
+        ["📺 Cartoon"],
         ["🔙 Back"],
     ]
 
