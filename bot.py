@@ -96,10 +96,10 @@ def categories_menu():
         ["🎬 Hindi"],
         ["🌐 Hindi Dubbed"],
         ["🎭 Bangla Dubbed"],
-        ["📺 English"],
+        ["English"],
         ["📺 Web Series"],
         ["🎤 Natok"],
-        ["📺 Cartoon"],
+        ["Cartoon"],
         ["🔙 Back"],
     ]
 
