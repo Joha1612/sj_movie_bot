@@ -28,6 +28,22 @@ ADMIN_ID = 1492045349  # Replace with your Telegram numeric ID
 MOVIES_PER_PAGE = 8
 USERS = set()
 
+from flask import Flask
+from threading import Thread
+
+web_app = Flask('')
+
+
+@web_app.route('/')
+def home():
+    return "Bot is running!"
+
+
+def run_web():
+    web_app.run(host='0.0.0.0', port=10000)
+
+
+Thread(target=run_web).start()
 
 CATEGORY_URLS = {
     "🇧🇩 Bangla & Kolkata": "https://fibwatch.art/videos/category/1",
