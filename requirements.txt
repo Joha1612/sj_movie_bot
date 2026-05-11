@@ -3,3 +3,4 @@ beautifulsoup4
 cloudscraper
 lxml
 requests
+flask
